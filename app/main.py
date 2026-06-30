@@ -10,9 +10,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from app.core.config import settings
-from app.routers import health
+from app.db import base  # noqa: F401 — modelleri kaydet (User vb.)
+from app.db.session import Base, engine
+from app.routers import health, users
 
 
 # ============================================================
@@ -33,9 +36,11 @@ async def lifespan(app: FastAPI):
     print(f"   Versiyon : {settings.APP_VERSION}")
     print(f"   Debug    : {settings.DEBUG}")
 
-    # Ileride buraya eklenecekler:
-    # await create_db_tables()
-    # await init_redis_cache()
+    # Veritabanı tablolarını oluştur (yoksa).
+    # Alembic migration'larına geçince bu satır kaldırılacak.
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    print("[STARTUP] Veritabani tablolari hazir.")
 
     print("[STARTUP] Gausso API hazir!\n")
 
@@ -83,10 +88,12 @@ app.add_middleware(
 # Sağlık kontrolü router'ı - /api/v1/health
 app.include_router(health.router, prefix=settings.API_V1_PREFIX)
 
+# Kullanıcı router'ı - /api/v1/users
+app.include_router(users.router, prefix=settings.API_V1_PREFIX)
+
 # İleride eklenecek router'lar:
-# app.include_router(auth.router,    prefix=settings.API_V1_PREFIX)
-# app.include_router(users.router,   prefix=settings.API_V1_PREFIX)
-# app.include_router(lessons.router, prefix=settings.API_V1_PREFIX)
+# app.include_router(auth.router,     prefix=settings.API_V1_PREFIX)
+# app.include_router(lessons.router,  prefix=settings.API_V1_PREFIX)
 # app.include_router(quizzes.router,  prefix=settings.API_V1_PREFIX)
 # app.include_router(progress.router, prefix=settings.API_V1_PREFIX)
 
@@ -119,6 +126,7 @@ async def root() -> JSONResponse:
             },
             "endpoints": {
                 "health_check": f"{settings.API_V1_PREFIX}/health",
+                "users":        f"{settings.API_V1_PREFIX}/users",
             },
         }
     )
