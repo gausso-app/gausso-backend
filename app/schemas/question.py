@@ -85,9 +85,11 @@ class QuestionResponse(QuestionBase):
 class AnswerSubmit(BaseModel):
     """
     POST /game/answer endpoint'ine gönderilecek veri.
+
+    Not: user_id artık JWT token'dan otomatik alınmaktadır.
+    İsteği yapan kullanıcı, Authorization: Bearer <token> başlığıyla belirlenir.
     """
 
-    user_id: int = Field(..., ge=1, description="Cevap veren kullanıcının ID'si")
     question_id: int = Field(..., ge=1, description="Cevaplanacak sorunun ID'si")
     user_answer: str = Field(
         ...,

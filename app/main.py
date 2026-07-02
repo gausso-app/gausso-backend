@@ -15,7 +15,8 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.db import base  # noqa: F401 — modelleri kaydet (User vb.)
 from app.db.session import Base, engine
-from app.routers import game, health, questions, users
+from app.routers import auth, game, health, questions, users
+from app.admin import create_admin
 
 
 # ============================================================
@@ -66,6 +67,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ============================================================
+# Admin Paneli (/admin)
+# ============================================================
+# sqladmin entegrasyonu - /admin rotasında yönetim arayüzü
+create_admin(app)
+
 
 # ============================================================
 # Middleware'ler
@@ -94,11 +101,13 @@ app.include_router(users.router, prefix=settings.API_V1_PREFIX)
 # Soru router'ı - /api/v1/questions
 app.include_router(questions.router, prefix=settings.API_V1_PREFIX)
 
+# Kimlik doğrulama router'ı - /api/v1/auth
+app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
+
 # Oyun motoru router'ı - /api/v1/game
 app.include_router(game.router, prefix=settings.API_V1_PREFIX)
 
 # İleride eklenecek router'lar:
-# app.include_router(auth.router,     prefix=settings.API_V1_PREFIX)
 # app.include_router(lessons.router,  prefix=settings.API_V1_PREFIX)
 # app.include_router(progress.router, prefix=settings.API_V1_PREFIX)
 
@@ -131,6 +140,7 @@ async def root() -> JSONResponse:
             },
             "endpoints": {
                 "health_check": f"{settings.API_V1_PREFIX}/health",
+                "auth":         f"{settings.API_V1_PREFIX}/auth/login",
                 "users":        f"{settings.API_V1_PREFIX}/users",
                 "questions":    f"{settings.API_V1_PREFIX}/questions",
                 "game":         f"{settings.API_V1_PREFIX}/game",

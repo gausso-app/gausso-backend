@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.security import get_password_hash
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, UserSummary
@@ -20,18 +21,7 @@ router = APIRouter(
 )
 
 
-# ============================================================
-# Yardımcı: Basit Parola Hash (Geçici - passlib ile değiştirilecek)
-# ============================================================
-def _fake_hash(password: str) -> str:
-    """
-    Geliştirme aşamasında geçici hash fonksiyonu.
-    Üretimde passlib/bcrypt kullanılacak:
-        from passlib.context import CryptContext
-        pwd_context = CryptContext(schemes=["bcrypt"])
-        pwd_context.hash(password)
-    """
-    return f"fakehashed_{password}"
+# (get_password_hash artık app.core.security'den import edilmektedir)
 
 
 # ============================================================
@@ -55,11 +45,11 @@ async def create_user(
     """
     Yeni kullanıcı oluşturma endpoint'i.
 
-    - Şifreyi hashler (şu an fake, ileride bcrypt)
+    - Şifreyi bcrypt ile hashler
     - username/email çakışmasında 409 döndürür
     - Başarılıysa oluşturulan kullanıcıyı 201 ile döndürür
     """
-    hashed_pw = _fake_hash(user_in.password)
+    hashed_pw = get_password_hash(user_in.password)
 
     new_user = User(
         username=user_in.username,

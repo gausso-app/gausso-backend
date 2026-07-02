@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.question import Question
 from app.models.user import User
@@ -36,34 +37,20 @@ router = APIRouter(
 async def submit_answer(
     answer_in: AnswerSubmit,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> AnswerResult:
     """
     Oyunlaştırma döngüsünün çekirdeği.
 
     Akış:
-    1. user_id → Kullanıcıyı veritabanından bul
+    1. JWT token'dan gelen current_user kullanılır (user_id parametresi kaldırıldı)
     2. question_id → Soruyu veritabanından bul
     3. Cevabı karşılaştır (büyük/küçük harf duyarsız, boşluk kırpılır)
     4. Doğruysa kullanıcının score'unu artır ve kaydet
     5. Sonucu AnswerResult şemasıyla döndür
     """
-    # --- 1. Kullanıcıyı bul ---
-    user_result = await db.execute(
-        select(User).where(User.id == answer_in.user_id)
-    )
-    user = user_result.scalar_one_or_none()
-
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ID={answer_in.user_id} olan kullanıcı bulunamadı.",
-        )
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Bu kullanıcı hesabı aktif değil.",
-        )
+    # --- 1. Kullanıcıyı token'dan al (kimlik doğrulaması Depends ile yapıldı) ---
+    user = current_user
 
     # --- 2. Soruyu bul ---
     question_result = await db.execute(
